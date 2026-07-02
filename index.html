@@ -1,159 +1,217 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StuLP</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Inter', sans-serif;
-      background-image: url('bg.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    }
-
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.55);
-    }
-
-    .content {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      color: #fff;
-      padding: 2rem;
-      max-width: 640px;
-    }
-
-    .tagline {
-      font-size: 0.85rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      opacity: 0.7;
-      margin-bottom: 1.25rem;
-    }
-
-    h1 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 5rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      margin-bottom: 1.25rem;
-    }
-
-    .description {
-      font-size: 1.15rem;
-      line-height: 1.6;
-      opacity: 0.85;
-      margin-bottom: 2.5rem;
-    }
-
-    .waitlist-form {
-      display: flex;
-      gap: 0.5rem;
-      max-width: 420px;
-      margin: 0 auto;
-    }
-
-    .waitlist-form input {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-      font-size: 0.95rem;
-      outline: none;
-      backdrop-filter: blur(4px);
-    }
-
-    .waitlist-form input::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    .waitlist-form input:focus {
-      border-color: rgba(255, 255, 255, 0.6);
-    }
-
-    .waitlist-form button {
-      padding: 0.75rem 1.25rem;
-      background: #fff;
-      color: #000;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: opacity 0.15s;
-    }
-
-    .waitlist-form button:hover {
-      opacity: 0.85;
-    }
-
-    .message {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      opacity: 0.75;
-      min-height: 1.2em;
-    }
-  </style>
-</head>
-<body>
-  <div class="overlay"></div>
-  <div class="content">
-    <p class="tagline">bridging the gap between taste and ability</p>
-    <h1>Ostinato</h1>
-    <p class="description">A voice-first AI co-producer for Ableton who understands the sound you want to create and walks you through the steps.</p>
-    <form class="waitlist-form" id="waitlist-form">
-      <input type="email" id="email-input" placeholder="your@email.com" required />
-      <button type="submit" id="submit-btn">Join Waitlist</button>
-    </form>
-    <p class="message" id="message"></p>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const SUPABASE_URL = 'https://glurwysylikiimssecsh.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdXJ3eXN5bGlraWltc3NlY3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTA2NDcsImV4cCI6MjA4NzIyNjY0N30.TC_rBcNsLTqu0pbAdyCHQipWzZ_eHC5DpMf7CYSMflQ';
-
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    document.getElementById('waitlist-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email-input').value.trim();
-      const btn = document.getElementById('submit-btn');
-      const msg = document.getElementById('message');
-
-      btn.disabled = true;
-      btn.textContent = 'Joining...';
-
-      const { error } = await client.from('waitlist').insert({ email });
-
-      if (error) {
-        msg.textContent = 'Something went wrong. Please try again.';
-        btn.disabled = false;
-        btn.textContent = 'Join Waitlist';
-      } else {
-        msg.textContent = "You're on the list.";
-        btn.textContent = 'Joined';
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StuLP</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,200;9..144,400&family=Montserrat:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
-    });
-  </script>
-</body>
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Manrope", sans-serif;
+        background-image: url("bg.png");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        color: #fff;
+        padding: 2rem;
+        max-width: 640px;
+      }
+
+      .tagline {
+        font-size: 0.85rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        opacity: 0.7;
+        margin-bottom: 1.25rem;
+      }
+
+      h1 {
+        font-family: "Fraunces", serif;
+        font-size: clamp(3.5rem, 16vw, 9rem);
+        font-weight: 200;
+        letter-spacing: 1rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .caption {
+        font-family: "Montserrat", sans-serif;
+        font-size: 0.8rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.5;
+        margin-bottom: 1.5rem;
+      }
+
+      .description {
+        font-size: 1.15rem;
+        line-height: 1.6;
+        opacity: 0.85;
+        margin-bottom: 2.5rem;
+      }
+
+      .waitlist-form {
+        display: flex;
+        gap: 0.5rem;
+        max-width: 420px;
+        margin: 0 auto;
+      }
+
+      .waitlist-form input {
+        flex: 1;
+        font-family: "Manrope", sans-serif;
+        padding: 0.75rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 0.95rem;
+        outline: none;
+        backdrop-filter: blur(4px);
+      }
+
+      .waitlist-form input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .waitlist-form input:focus {
+        border-color: rgba(255, 255, 255, 0.6);
+      }
+
+      .waitlist-form button {
+        font-family: "Manrope", sans-serif;
+        padding: 0.75rem 1.25rem;
+        background: #fff;
+        color: #000;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 400;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: opacity 0.15s;
+      }
+
+      .waitlist-form button:hover {
+        opacity: 0.85;
+      }
+
+      .message {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        opacity: 0.75;
+        min-height: 1.2em;
+      }
+
+      /* ---- smaller screens ---- */
+      @media (max-width: 600px) {
+        .content {
+          padding: 1.5rem;
+        }
+
+        .tagline {
+          font-size: 0.75rem;
+          letter-spacing: 0.12em;
+          margin-bottom: 1rem;
+        }
+
+        .description {
+          font-size: 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .waitlist-form {
+          flex-direction: column;
+          gap: 0.6rem;
+        }
+
+        .waitlist-form button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="overlay"></div>
+    <div class="content">
+      <p class="tagline">
+        bridging the gap between taste and technical ability
+      </p>
+      <h1>Palette</h1>
+      <p class="caption" style="margin-top: -0.75rem; font-style: italic">
+        built for Ableton
+      </p>
+
+      <p class="description">
+        Find your sound faster with an audio-first AI co-producer embedded in
+        your project.
+      </p>
+      <form class="waitlist-form" id="waitlist-form">
+        <input
+          type="email"
+          id="email-input"
+          placeholder="your@email.com"
+          required
+        />
+        <button type="submit" id="submit-btn">Stay Updated</button>
+      </form>
+      <p class="message" id="message"></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const SUPABASE_URL = "https://teojocqptooweyrrzsyx.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlb2pvY3FwdG9vd2V5cnJ6c3l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMjA5MzMsImV4cCI6MjA5ODU5NjkzM30.CVXdInGEQJXQUPH9ku4FPu0W8xK_Uw_QI8ixO3hy1gk";
+
+      const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      document
+        .getElementById("waitlist-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("email-input").value.trim();
+          const btn = document.getElementById("submit-btn");
+          const msg = document.getElementById("message");
+
+          btn.disabled = true;
+          btn.textContent = "Joining...";
+
+          const { error } = await client.from("Emails").insert({ email });
+
+          if (error) {
+            msg.textContent = "Something went wrong. Please try again.";
+            btn.disabled = false;
+            btn.textContent = "Join Waitlist";
+          } else {
+            msg.textContent = "You're on the list.";
+            btn.textContent = "Joined";
+          }
+        });
+    </script>
+  </body>
 </html>

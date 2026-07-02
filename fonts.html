@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Palette — Font Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Playfair+Display:wght@400;600;700;900&family=EB+Garamond:wght@400;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@400;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Spectral:wght@400;600;700&family=DM+Serif+Display&family=Bodoni+Moda:wght@400;600;700;900&family=Marcellus&family=Cinzel:wght@400;600;700&family=Italiana&family=Gilda+Display&family=Prata&family=Instrument+Serif&family=Inter:wght@400;600;700&family=Poppins:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Work+Sans:wght@400;600;700&family=DM+Sans:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=Manrope:wght@400;600;700&family=Sora:wght@400;600;700&family=Outfit:wght@400;600;700&family=Syne:wght@400;600;700;800&family=Archivo:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--body-font, "Inter"), sans-serif;
+        background-image: url("bg.png");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+      }
+
+      /* ---- the actual landing content (mirrors index.html) ---- */
+      .content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        color: #fff;
+        padding: 2rem;
+        max-width: 640px;
+      }
+
+      .tagline {
+        font-size: 0.85rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        opacity: 0.7;
+        margin-bottom: 1.25rem;
+      }
+
+      h1 {
+        font-family: var(--heading-font, "Cormorant Garamond"), serif;
+        font-size: var(--heading-size, 5rem);
+        font-weight: var(--heading-weight, 700);
+        letter-spacing: var(--heading-tracking, 0.02em);
+        margin-bottom: 0.35rem;
+        line-height: 1.05;
+      }
+
+      /* Second title (compare mode) */
+      h1.compare {
+        font-family: var(--heading-font-b, "Playfair Display"), serif;
+      }
+
+      .fontlabel {
+        font-family: "Inter", sans-serif;
+        font-size: 0.62rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        opacity: 0.4;
+        margin-bottom: 1.5rem;
+      }
+
+      .caption {
+        font-size: 0.8rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.5;
+        margin-top: -0.25rem;
+        font-style: italic;
+        margin-bottom: 1.5rem;
+      }
+
+      .description {
+        font-size: 1.15rem;
+        line-height: 1.6;
+        opacity: 0.85;
+      }
+
+      /* Hide the compare block unless the body has .comparing */
+      #compare-block {
+        display: none;
+      }
+      body.comparing #compare-block {
+        display: block;
+      }
+      /* In compare mode, the primary title also gets a label */
+      body.comparing #primary-label {
+        display: block;
+      }
+      #primary-label {
+        display: none;
+      }
+
+      /* ---- control panel ---- */
+      .panel {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10;
+        width: 260px;
+        background: rgba(15, 15, 18, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 1rem;
+        color: #fff;
+        font-family: "Inter", system-ui, sans-serif;
+        font-size: 0.8rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+      }
+
+      .panel h2 {
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        opacity: 0.55;
+        margin-bottom: 0.85rem;
+        font-weight: 600;
+      }
+
+      .field {
+        margin-bottom: 0.85rem;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 0.3rem;
+        opacity: 0.7;
+      }
+
+      .field label .val {
+        float: right;
+        opacity: 0.9;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .panel select,
+      .panel input[type="text"] {
+        width: 100%;
+        padding: 0.45rem 0.55rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 0.82rem;
+        outline: none;
+      }
+
+      .panel select option {
+        color: #000;
+      }
+
+      .panel input[type="range"] {
+        width: 100%;
+        accent-color: #fff;
+      }
+
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.85rem;
+      }
+      .toggle-row input {
+        accent-color: #fff;
+      }
+      .toggle-row label {
+        opacity: 0.85;
+        cursor: pointer;
+      }
+
+      .divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.12);
+        margin: 0.25rem 0 0.85rem;
+      }
+
+      .panel .hint {
+        opacity: 0.4;
+        font-size: 0.68rem;
+        line-height: 1.4;
+        margin-top: 0.5rem;
+      }
+
+      #compare-fields[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="overlay"></div>
+
+    <!-- Live preview: same content as index.html -->
+    <div class="content">
+      <p class="tagline">bridging the gap between taste and technical ability</p>
+
+      <h1 id="preview-title">Palette</h1>
+      <p class="fontlabel" id="primary-label"></p>
+
+      <div id="compare-block">
+        <h1 class="compare" id="preview-title-b">Palette</h1>
+        <p class="fontlabel" id="compare-label"></p>
+      </div>
+
+      <p class="caption">built for Ableton</p>
+      <p class="description">
+        Find your sound faster with an AI, audio-first co-producer embedded in
+        your project.
+      </p>
+    </div>
+
+    <!-- Controls -->
+    <div class="panel">
+      <h2>Font Lab</h2>
+
+      <div class="field">
+        <label for="heading-font">Heading font</label>
+        <select id="heading-font"></select>
+      </div>
+
+      <div class="field">
+        <label for="custom-font">…or any Google Font</label>
+        <input type="text" id="custom-font" placeholder="e.g. Cardo, Newsreader" />
+      </div>
+
+      <div class="field">
+        <label for="body-font">Body font</label>
+        <select id="body-font"></select>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="toggle-row">
+        <input type="checkbox" id="compare-toggle" />
+        <label for="compare-toggle">Compare a second heading font</label>
+      </div>
+
+      <div id="compare-fields" hidden>
+        <div class="field">
+          <label for="heading-font-b">Second heading font</label>
+          <select id="heading-font-b"></select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label for="weight">Weight <span class="val" id="weight-val">700</span></label>
+        <input type="range" id="weight" min="400" max="900" step="100" value="700" />
+      </div>
+
+      <div class="field">
+        <label for="size">Size <span class="val" id="size-val">5.0rem</span></label>
+        <input type="range" id="size" min="2" max="9" step="0.1" value="5" />
+      </div>
+
+      <div class="field">
+        <label for="tracking"
+          >Letter-spacing <span class="val" id="tracking-val">0.02em</span></label
+        >
+        <input type="range" id="tracking" min="-0.05" max="0.3" step="0.01" value="0.02" />
+      </div>
+
+      <p class="hint">
+        Preview only — index.html is untouched. Weight/size/tracking apply to
+        both compared titles.
+      </p>
+    </div>
+
+    <script>
+      const FONTS = {
+        "Serif / Display": [
+          "Cormorant Garamond",
+          "Playfair Display",
+          "EB Garamond",
+          "Libre Baskerville",
+          "Lora",
+          "Fraunces",
+          "Spectral",
+          "DM Serif Display",
+          "Bodoni Moda",
+          "Marcellus",
+          "Cinzel",
+          "Italiana",
+          "Gilda Display",
+          "Prata",
+          "Instrument Serif",
+        ],
+        Sans: [
+          "Inter",
+          "Poppins",
+          "Montserrat",
+          "Work Sans",
+          "DM Sans",
+          "Space Grotesk",
+          "Manrope",
+          "Sora",
+          "Outfit",
+          "Syne",
+          "Archivo",
+        ],
+      };
+
+      const root = document.documentElement;
+
+      // Populate any <select> with the grouped font list.
+      function fillSelect(el, selected) {
+        for (const [group, families] of Object.entries(FONTS)) {
+          const og = document.createElement("optgroup");
+          og.label = group;
+          for (const f of families) {
+            const o = document.createElement("option");
+            o.value = f;
+            o.textContent = f;
+            if (f === selected) o.selected = true;
+            og.appendChild(o);
+          }
+          el.appendChild(og);
+        }
+      }
+
+      const headSel = document.getElementById("heading-font");
+      const headSelB = document.getElementById("heading-font-b");
+      const bodySel = document.getElementById("body-font");
+      const custom = document.getElementById("custom-font");
+      const primaryLabel = document.getElementById("primary-label");
+      const compareLabel = document.getElementById("compare-label");
+
+      fillSelect(headSel, "Cormorant Garamond");
+      fillSelect(headSelB, "Playfair Display");
+      fillSelect(bodySel, "Inter");
+
+      const setVar = (name, val) => root.style.setProperty(name, `"${val}"`);
+
+      // Primary heading
+      headSel.addEventListener("change", () => {
+        custom.value = "";
+        setVar("--heading-font", headSel.value);
+        primaryLabel.textContent = headSel.value;
+      });
+      primaryLabel.textContent = headSel.value;
+
+      // Second heading (compare)
+      headSelB.addEventListener("change", () => {
+        setVar("--heading-font-b", headSelB.value);
+        compareLabel.textContent = headSelB.value;
+      });
+      setVar("--heading-font-b", headSelB.value);
+      compareLabel.textContent = headSelB.value;
+
+      // Body font
+      bodySel.addEventListener("change", () =>
+        setVar("--body-font", bodySel.value),
+      );
+
+      // Compare toggle
+      const compareToggle = document.getElementById("compare-toggle");
+      const compareFields = document.getElementById("compare-fields");
+      compareToggle.addEventListener("change", () => {
+        document.body.classList.toggle("comparing", compareToggle.checked);
+        compareFields.hidden = !compareToggle.checked;
+      });
+
+      // Arbitrary Google Font via injected <link> (applies to primary heading)
+      let customTimer;
+      custom.addEventListener("input", () => {
+        clearTimeout(customTimer);
+        const name = custom.value.trim();
+        if (!name) return;
+        customTimer = setTimeout(() => {
+          const family = name.replace(/\s+/g, "+");
+          let link = document.getElementById("dynamic-font");
+          if (!link) {
+            link = document.createElement("link");
+            link.id = "dynamic-font";
+            link.rel = "stylesheet";
+            document.head.appendChild(link);
+          }
+          link.href = `https://fonts.googleapis.com/css2?family=${family}:wght@400;600;700&display=swap`;
+          setVar("--heading-font", name);
+          primaryLabel.textContent = name + " (custom)";
+        }, 400);
+      });
+
+      // Sliders (apply to both titles via shared CSS vars)
+      const bind = (id, cssVar, unit, fmt) => {
+        const input = document.getElementById(id);
+        const out = document.getElementById(id + "-val");
+        const apply = () => {
+          root.style.setProperty(cssVar, input.value + unit);
+          out.textContent = fmt(input.value);
+        };
+        input.addEventListener("input", apply);
+        apply();
+      };
+      bind("weight", "--heading-weight", "", (v) => v);
+      bind("size", "--heading-size", "rem", (v) => (+v).toFixed(1) + "rem");
+      bind("tracking", "--heading-tracking", "em", (v) => (+v).toFixed(2) + "em");
+    </script>
+  </body>
+</html>

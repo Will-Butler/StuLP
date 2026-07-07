@@ -1,2 +1,3 @@
-# StuLP
-temporary landing page for Stu
+# Palette
+
+temporary landing page for Palette

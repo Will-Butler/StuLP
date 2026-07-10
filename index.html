@@ -38,7 +38,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        color: #fff;
+        /* warm off-white instead of pure #fff so text settles into the image */
+        color: #e8e1d5;
         padding: 6vh 1.5rem 4rem;
       }
 
@@ -60,7 +61,7 @@
         flex: 1 1 400px;
         max-width: 520px;
         text-align: left;
-        color: #fff;
+        color: #e8e1d5;
         padding: 1rem;
       }
 
@@ -81,6 +82,9 @@
         font-weight: 200;
         letter-spacing: 1rem;
         margin-bottom: 0.35rem;
+        /* soften the big display word so it melds with the photo */
+        color: rgba(240, 234, 224, 0.82);
+        text-shadow: 0 2px 40px rgba(20, 16, 12, 0.35);
       }
 
       .caption {
@@ -630,6 +634,7 @@
         <div class="gs-download">
           <a
             class="download-btn download-btn--dark"
+            id="download-btn"
             href="https://downloads.trypaletteapp.com/Palette.dmg"
             download
           >
@@ -709,6 +714,27 @@
 
       const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+      // Fire-and-forget analytics. Never blocks or breaks the UI if the
+      // insert fails (offline, RLS, ad-blocker, etc.).
+      function logEvent(event, meta) {
+        try {
+          client
+            .from("Events")
+            .insert({ event, meta: meta || null })
+            .then(({ error }) => {
+              if (error) console.debug("logEvent failed:", error.message);
+            });
+        } catch (err) {
+          console.debug("logEvent threw:", err);
+        }
+      }
+
+      // Track download-button clicks. The `download` attribute keeps the
+      // page loaded, so the async insert has time to complete.
+      document.getElementById("download-btn").addEventListener("click", () => {
+        logEvent("download_click", { platform: "mac" });
+      });
+
       document
         .getElementById("waitlist-form")
         .addEventListener("submit", async (e) => {
@@ -716,6 +742,8 @@
           const email = document.getElementById("email-input").value.trim();
           const btn = document.getElementById("submit-btn");
           const msg = document.getElementById("message");
+
+          logEvent("waitlist_submit");
 
           btn.disabled = true;
           btn.textContent = "Joining...";
@@ -729,6 +757,7 @@
           } else {
             msg.textContent = "You're on the list.";
             btn.textContent = "Joined";
+            logEvent("waitlist_success");
           }
         });
     </script>

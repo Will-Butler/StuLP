@@ -87,6 +87,52 @@
         text-shadow: 0 2px 40px rgba(20, 16, 12, 0.35);
       }
 
+      /* each letter is its own box so it can be transformed independently */
+      h1 .ltr {
+        display: inline-block;
+        transform-origin: 50% 85%;
+        will-change: transform, opacity;
+      }
+
+      /* play/pause control for the audio-reactive title */
+      .vibe-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin: 0.1rem 0 1.35rem;
+        padding: 0.4rem 0.95rem;
+        font-family: "Montserrat", sans-serif;
+        font-size: 0.68rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #e8e1d5;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 999px;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+        transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+      }
+
+      .vibe-toggle:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.4);
+      }
+
+      .vibe-toggle.is-playing {
+        border-color: #c4714a;
+      }
+
+      .vibe-toggle:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      .vibe-icon {
+        font-size: 0.6rem;
+        line-height: 1;
+      }
+
       .caption {
         font-family: "Montserrat", sans-serif;
         font-size: 0.8rem;
@@ -550,10 +596,21 @@
 
       <div class="hero-columns">
         <div class="content">
-          <h1>Palette</h1>
+          <!-- prettier-ignore -->
+          <h1 id="palette-title" aria-label="Palette"><span class="ltr" aria-hidden="true">P</span><span class="ltr" aria-hidden="true">a</span><span class="ltr" aria-hidden="true">l</span><span class="ltr" aria-hidden="true">e</span><span class="ltr" aria-hidden="true">t</span><span class="ltr" aria-hidden="true">t</span><span class="ltr" aria-hidden="true">e</span></h1>
           <p class="caption" style="margin-top: -0.75rem; font-style: italic">
             built for Ableton
           </p>
+
+          <button
+            type="button"
+            id="vibe-toggle"
+            class="vibe-toggle"
+            aria-pressed="false"
+          >
+            <span class="vibe-icon" aria-hidden="true">&#9654;</span>
+            <span class="vibe-label">play the vibe</span>
+          </button>
 
           <p class="description">
             Find your sound faster with an audio-first AI co-producer embedded
@@ -704,6 +761,113 @@
           });
         });
       });
+    </script>
+
+    <script>
+      // ---- audio-reactive "Palette" title -------------------------------
+      // Each letter is driven by a live frequency band from the track.
+      // Audio can't autoplay, so it only starts on the play button click.
+      (function () {
+        const AUDIO_SRC = "palette-demo.mp3"; // drop your track at the repo root
+        const title = document.getElementById("palette-title");
+        const toggle = document.getElementById("vibe-toggle");
+        const icon = toggle.querySelector(".vibe-icon");
+        const label = toggle.querySelector(".vibe-label");
+        const letters = Array.from(title.querySelectorAll(".ltr"));
+        const reduceMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+
+        let audio, ctx, analyser, sourceNode, freq, rafId;
+        let playing = false;
+        const levels = letters.map(() => 0); // smoothed level per letter
+
+        function setupAudio() {
+          audio = new Audio(AUDIO_SRC);
+          audio.loop = true;
+          audio.preload = "auto";
+
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          ctx = new AudioCtx();
+          sourceNode = ctx.createMediaElementSource(audio);
+          analyser = ctx.createAnalyser();
+          analyser.fftSize = 128; // 64 frequency bins
+          analyser.smoothingTimeConstant = 0.8;
+          sourceNode.connect(analyser);
+          analyser.connect(ctx.destination);
+          freq = new Uint8Array(analyser.frequencyBinCount);
+
+          audio.addEventListener("ended", stop);
+          audio.addEventListener("error", () => {
+            console.debug("vibe audio failed to load:", AUDIO_SRC);
+            stop();
+            toggle.disabled = true;
+            toggle.title = "Add palette-demo.mp3 to enable";
+          });
+        }
+
+        // Spread the letters across the musically busy low-mid range,
+        // skipping sub-bass rumble and the usually-dead high end, so each
+        // letter reacts to a different part of the spectrum.
+        function binForLetter(i) {
+          const bins = analyser.frequencyBinCount;
+          const start = 2;
+          const end = Math.floor(bins * 0.6);
+          return start + Math.round((i / (letters.length - 1)) * (end - start));
+        }
+
+        function frame() {
+          analyser.getByteFrequencyData(freq);
+          letters.forEach((el, i) => {
+            const raw = freq[binForLetter(i)] / 255; // 0..1
+            levels[i] += (raw - levels[i]) * 0.35; // ease toward target
+            const lvl = levels[i];
+            el.style.transform = `translateY(${-lvl * 22}px) scale(${
+              1 + lvl * 0.28
+            })`;
+            el.style.opacity = (0.72 + lvl * 0.28).toFixed(3);
+          });
+          rafId = requestAnimationFrame(frame);
+        }
+
+        function reset() {
+          cancelAnimationFrame(rafId);
+          letters.forEach((el, i) => {
+            levels[i] = 0;
+            el.style.transform = "";
+            el.style.opacity = "";
+          });
+        }
+
+        async function start() {
+          if (!ctx) setupAudio();
+          try {
+            await ctx.resume();
+            await audio.play();
+          } catch (err) {
+            console.debug("vibe playback blocked:", err);
+            return;
+          }
+          playing = true;
+          toggle.setAttribute("aria-pressed", "true");
+          toggle.classList.add("is-playing");
+          icon.innerHTML = "&#10074;&#10074;"; // pause glyph
+          label.textContent = "pause";
+          if (!reduceMotion) frame();
+        }
+
+        function stop() {
+          playing = false;
+          if (audio) audio.pause();
+          toggle.setAttribute("aria-pressed", "false");
+          toggle.classList.remove("is-playing");
+          icon.innerHTML = "&#9654;"; // play glyph
+          label.textContent = "play the vibe";
+          reset();
+        }
+
+        toggle.addEventListener("click", () => (playing ? stop() : start()));
+      })();
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

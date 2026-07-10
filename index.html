@@ -31,23 +31,25 @@
         background: rgba(0, 0, 0, 0.55);
       }
 
-      /* ---- hero: existing content pushed to the top ---- */
+      /* ---- hero: content left, live "just ask" feed right ---- */
       .hero {
         position: relative;
         min-height: 100vh;
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: center;
-        padding: 14vh 1.5rem 4rem;
+        gap: 2.5rem;
+        padding: 8vh 1.5rem 4rem;
       }
 
       .content {
         position: relative;
         z-index: 1;
-        text-align: center;
+        flex: 1 1 400px;
+        max-width: 520px;
+        text-align: left;
         color: #fff;
-        padding: 2rem;
-        max-width: 640px;
+        padding: 1rem;
       }
 
       .tagline {
@@ -76,6 +78,7 @@
       }
 
       .description {
+        font-family: "Manrope", sans-serif; /* match the tagline */
         font-size: 1.15rem;
         line-height: 1.6;
         opacity: 0.85;
@@ -86,7 +89,7 @@
         display: flex;
         gap: 0.5rem;
         max-width: 420px;
-        margin: 0 auto;
+        margin: 0;
       }
 
       .waitlist-form input {
@@ -139,7 +142,7 @@
       .download-cta {
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 2.25rem;
       }
 
@@ -317,12 +320,12 @@
         color: #6a6058;
       }
 
-      /* ---- example prompts showcase (matches Palette's app UI) ---- */
-      .showcase {
+      /* ---- example prompts feed in hero right column (matches Palette's app UI) ---- */
+      .hero-feed {
         position: relative;
         z-index: 1;
-        background: #f7f3ee;
-        padding: 4.5rem 1.5rem 5.5rem;
+        flex: 1 1 480px;
+        max-width: 560px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -333,7 +336,7 @@
         font-weight: 400;
         font-style: italic;
         font-size: 1.5rem;
-        color: #a89e95;
+        color: rgba(255, 255, 255, 0.65);
         margin-bottom: 1.75rem;
         text-align: center;
       }
@@ -413,7 +416,7 @@
         font-size: 0.6rem;
         letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: #7a9e7e;
+        color: #9dbfa0;
         margin-bottom: 0.35rem;
       }
 
@@ -421,12 +424,40 @@
         font-family: "Fraunces", serif;
         font-size: 14px;
         line-height: 1.5;
-        color: #1c1a18;
+        color: rgba(255, 255, 255, 0.9);
       }
 
       @media (prefers-reduced-motion: reduce) {
         .feed-track {
           animation: none;
+        }
+      }
+
+      /* ---- stack the hero once two columns no longer fit ---- */
+      @media (max-width: 880px) {
+        .hero {
+          flex-direction: column;
+          padding-top: 11vh;
+        }
+
+        .content {
+          flex: 0 1 auto;
+          max-width: 640px;
+          text-align: center;
+        }
+
+        .download-cta {
+          align-items: center;
+        }
+
+        .waitlist-form {
+          margin: 0 auto;
+        }
+
+        .hero-feed {
+          flex: 0 1 auto;
+          width: 100%;
+          margin-top: 1rem;
         }
       }
 
@@ -456,12 +487,8 @@
           width: 100%;
         }
 
-        .showcase {
-          padding: 3.5rem 1.25rem 4.5rem;
-        }
-
         .feed {
-          height: 380px;
+          height: 340px;
         }
 
         .showcase-heading {
@@ -530,11 +557,10 @@
         </form>
         <p class="message" id="message"></p>
       </div>
-    </section>
 
-    <section class="showcase">
-      <p class="showcase-heading">Just ask &mdash;</p>
-      <div class="feed" aria-hidden="true">
+      <div class="hero-feed">
+        <p class="showcase-heading">Just ask &mdash;</p>
+        <div class="feed" aria-hidden="true">
         <div class="feed-track" id="feed-track">
           <template id="feed-items">
             <div class="msg-user">
@@ -583,6 +609,7 @@
               <div class="bubble">make the drop hit harder</div>
             </div>
           </template>
+        </div>
         </div>
       </div>
     </section>

@@ -39,7 +39,7 @@
         flex-direction: column;
         align-items: center;
         /* warm off-white instead of pure #fff so text settles into the image */
-        color: #e8e1d5;
+        color: #c8c6c1;
         padding: 6vh 1.5rem 4rem;
       }
 
@@ -61,7 +61,7 @@
         flex: 1 1 400px;
         max-width: 520px;
         text-align: left;
-        color: #e8e1d5;
+        color: #c8c6c1;
         padding: 1rem;
       }
 
@@ -84,8 +84,8 @@
         /* keep "Palette" on a single row at every window size */
         white-space: nowrap;
         margin-bottom: 0.35rem;
-        /* soften the big display word so it melds with the photo */
-        color: rgba(240, 234, 224, 0.82);
+        /* warm off-white to match the rest of the hero text */
+        color: #c8c6c1;
         text-shadow: 0 2px 40px rgba(20, 16, 12, 0.35);
       }
 
@@ -106,7 +106,7 @@
         margin: 0;
         padding: 0;
         line-height: 1;
-        color: rgba(240, 234, 224, 0.9);
+        color: #c8c6c1;
         background: transparent;
         border: 0;
         cursor: pointer;
@@ -239,28 +239,28 @@
         flex: 1;
         font-family: "Manrope", sans-serif;
         padding: 0.75rem 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        border: 1px solid rgba(200, 198, 193, 0.3);
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
+        background: rgba(200, 198, 193, 0.1);
+        color: #c8c6c1;
         font-size: 0.95rem;
         outline: none;
         backdrop-filter: blur(4px);
       }
 
       .waitlist-form input::placeholder {
-        color: rgba(255, 255, 255, 0.5);
+        color: rgba(200, 198, 193, 0.5);
       }
 
       .waitlist-form input:focus {
-        border-color: rgba(255, 255, 255, 0.6);
+        border-color: rgba(200, 198, 193, 0.6);
       }
 
       .waitlist-form button {
         font-family: "Manrope", sans-serif;
         padding: 0.75rem 1.25rem;
-        background: #fff;
-        color: #000;
+        background: #c8c6c1;
+        color: #1c1a18;
         border: none;
         border-radius: 6px;
         font-size: 0.95rem;
@@ -488,7 +488,7 @@
         font-weight: 400;
         font-style: italic;
         font-size: 1.5rem;
-        color: rgba(255, 255, 255, 0.65);
+        color: rgba(200, 198, 193, 0.65);
         margin-bottom: 1.75rem;
         text-align: center;
       }
@@ -576,7 +576,7 @@
         font-family: "Fraunces", serif;
         font-size: 14px;
         line-height: 1.5;
-        color: rgba(255, 255, 255, 0.9);
+        color: rgba(200, 198, 193, 0.9);
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -863,7 +863,7 @@
       // Each letter is driven by a live frequency band from the track.
       // Audio can't autoplay, so it only starts on the play button click.
       (function () {
-        const AUDIO_SRC = "palette-demo.m4a"; // drop your track at the repo root
+        const AUDIO_SRC = "palette-demo.mp3"; // stereo mixdown at the repo root
         const title = document.getElementById("palette-title");
         const toggle = document.getElementById("vibe-toggle");
         const letters = Array.from(title.querySelectorAll(".ltr"));
@@ -871,54 +871,165 @@
           "(prefers-reduced-motion: reduce)",
         ).matches;
 
-        let audio, ctx, analyser, sourceNode, freq, rafId;
+        // We decode the whole clip into an AudioBuffer instead of routing an
+        // <audio> element through createMediaElementSource: Chrome feeds that
+        // path silence for AAC/.m4a (element plays fine on its own, but the
+        // graph — and the speakers — get zero samples).
+        let ctx, analyser, buffer, sourceNode, freq, rafId, bands;
         let playing = false;
+        let startedAt = 0; // ctx clock at playback start, for the intro timeline
+        let allCeil = 0,
+          allFloor = 0; // auto-gain for the intro's overall-loudness read
+        let hiCeil = 0,
+          hiFloor = 0; // auto-gain for the high-band read (guitar up-strums)
         const levels = letters.map(() => 0); // smoothed level per letter
+        const ceils = letters.map(() => 0); // per-letter recent peak (auto-gain)
+        const floors = letters.map(() => 0); // per-letter noise floor
 
-        function setupAudio() {
-          audio = new Audio(AUDIO_SRC);
-          audio.loop = true;
-          audio.preload = "auto";
+        // Intro timeline: before the drop the letters light up in a scripted
+        // sequence (driven by overall loudness, any frequency) to build with
+        // the track. "Palette" = P a l e t t e (indices 0–6): the first four
+        // each get a ~0.9s solo on the beat, the two t's dance together through
+        // the mid-build, then the final e carries to the drop — where every
+        // letter switches to the per-band reactive mode. `until` = the elapsed
+        // second the segment ends; tweak these to taste.
+        // Boundaries snapped to real onsets detected in the clip (~123 BPM;
+        // strong hits at 0.58/1.53/2.51s, build into the drop at 11.52s).
+        const DROP = 11.52; // seconds into the track — reactive mode begins here
+        const INTRO_END = DROP;
+        const introTimeline = [
+          // First four letters switch on the snare/clap backbeat (0.93 / 1.89 /
+          // 2.86s — the track's steadiest series), each popping on its clap.
+          { until: 0.93, active: [0] }, // P
+          { until: 1.89, active: [1] }, // a → clap 0.93
+          { until: 2.86, active: [2] }, // l → clap 1.89
+          { until: 4.06, active: [3] }, // e → clap 2.86
+          // The two t's move together, driven by the high band, so they pop on
+          // the guitar up-strums (3 sets of 2: ~4.3/4.4, 5.3/5.4, 6.2/6.4).
+          { until: 6.71, active: [4, 5], drive: "high" },
+          // Riser section: a transient-timed sweep runs down to P …
+          { until: 7.19, active: [6] }, // → 6.71
+          { until: 7.67, active: [5] }, // → 7.19
+          { until: 8.28, active: [4] }, // → 7.67
+          { until: 8.64, active: [3] }, // → 8.28
+          { until: 9.13, active: [2] }, // → 8.64
+          { until: 9.59, active: [1] }, // → 9.13
+          { until: 9.83, active: [0] }, // P (turnaround) → 9.59
+          // … and back up to the last e, accelerating with the 16th-note riser
+          { until: 10.08, active: [1] }, // → 9.83
+          { until: 10.31, active: [2] }, // → 10.08
+          { until: 10.55, active: [3] }, // → 10.31
+          { until: 10.8, active: [4] }, // → 10.55
+          { until: 11.29, active: [5] }, // → 10.80
+          { until: INTRO_END, active: [6] }, // final e → last clap 11.29, then drop
+        ];
+        const activeAt = (t) => {
+          for (const seg of introTimeline) if (t < seg.until) return seg;
+          return null;
+        };
 
+        function setupGraph() {
           const AudioCtx = window.AudioContext || window.webkitAudioContext;
           ctx = new AudioCtx();
-          sourceNode = ctx.createMediaElementSource(audio);
           analyser = ctx.createAnalyser();
-          analyser.fftSize = 128; // 64 frequency bins
-          analyser.smoothingTimeConstant = 0.8;
-          sourceNode.connect(analyser);
+          analyser.fftSize = 256; // 128 frequency bins — room for a log spread
+          analyser.smoothingTimeConstant = 0.72;
           analyser.connect(ctx.destination);
           freq = new Uint8Array(analyser.frequencyBinCount);
 
-          audio.addEventListener("ended", stop);
-          audio.addEventListener("error", () => {
-            console.debug("vibe audio failed to load:", AUDIO_SRC);
-            stop();
-            toggle.disabled = true;
-            toggle.title = "Add palette-demo.m4a to enable";
+          // Give each letter its own band, spaced logarithmically — the way we
+          // hear pitch — so the first letters ride the low end and the last
+          // catch the highs. We stay inside the musically *live* range
+          // (~roughly 500 Hz–8 kHz): below it the bass is loud but constant
+          // and above it there's no signal, so letters parked there would
+          // pin up or sit dead. Linear spacing (the old way) crammed them
+          // all into correlated low-mids, which is why they moved as one.
+          const lo = 3;
+          const hi = 44;
+          bands = letters.map((_, i) => {
+            const t = letters.length === 1 ? 0 : i / (letters.length - 1);
+            return Math.round(lo * Math.pow(hi / lo, t)); // log spacing
           });
         }
 
-        // Spread the letters across the musically busy low-mid range,
-        // skipping sub-bass rumble and the usually-dead high end, so each
-        // letter reacts to a different part of the spectrum.
-        function binForLetter(i) {
-          const bins = analyser.frequencyBinCount;
-          const start = 2;
-          const end = Math.floor(bins * 0.6);
-          return start + Math.round((i / (letters.length - 1)) * (end - start));
+        async function loadBuffer() {
+          const res = await fetch(AUDIO_SRC);
+          if (!res.ok) throw new Error("fetch " + res.status);
+          buffer = await ctx.decodeAudioData(await res.arrayBuffer());
         }
 
         function frame() {
           analyser.getByteFrequencyData(freq);
+          const t = ctx.currentTime - startedAt;
+          const intro = t < INTRO_END;
+
+          // During the intro, read two auto-gained drives: overall loudness
+          // (all bands) for most letters, and a high-band read for the t's so
+          // they pop on the guitar up-strums rather than the whole kit.
+          const seg = intro ? activeAt(t) : null;
+          let overall = 0,
+            high = 0;
+          if (intro) {
+            let sum = 0;
+            for (let b = 2; b < freq.length; b++) sum += freq[b];
+            overall = sum / (freq.length - 2) / 255;
+            allCeil = Math.max(overall, allCeil * 0.99);
+            allFloor =
+              overall < allFloor ? overall : allFloor + (overall - allFloor) * 0.02;
+            const ra = allCeil - allFloor;
+            overall = ra > 0.02 ? Math.pow((overall - allFloor) / ra, 1.3) : 0;
+
+            let hsum = 0;
+            for (let b = 16; b <= 50; b++) hsum += freq[b]; // ~3–8.5 kHz guitar
+            high = hsum / 35 / 255;
+            hiCeil = Math.max(high, hiCeil * 0.99);
+            hiFloor = high < hiFloor ? high : hiFloor + (high - hiFloor) * 0.02;
+            const rh = hiCeil - hiFloor;
+            high = rh > 0.03 ? Math.pow((high - hiFloor) / rh, 1.6) : 0;
+          }
+
           letters.forEach((el, i) => {
-            const raw = freq[binForLetter(i)] / 255; // 0..1
-            levels[i] += (raw - levels[i]) * 0.35; // ease toward target
+            let target;
+            if (intro) {
+              // only the letters whose turn it is dance; the rest rest
+              const drive = seg && seg.drive === "high" ? high : overall;
+              target = seg && seg.active.includes(i) ? drive : 0;
+            } else {
+              // peak of a tiny window around this letter's band — punchier read
+              const c = bands[i];
+              let v = 0;
+              for (let b = c - 1; b <= c + 1; b++) {
+                if (freq[b] > v) v = freq[b];
+              }
+              v /= 255; // 0..1
+
+              // Per-letter auto-gain by dynamic range: each band tracks its own
+              // slowly-decaying ceiling and slowly-rising floor, then maps its
+              // live value between them. A band that pulses swings the full
+              // 0..1; a band that's constantly loud (bass) collapses to no
+              // range and rests instead of pinning up. This is what makes the
+              // letters dance distinctly instead of together.
+              ceils[i] = Math.max(v, ceils[i] * 0.992);
+              floors[i] =
+                v < floors[i] ? v : floors[i] + (v - floors[i]) * 0.02;
+              const range = ceils[i] - floors[i];
+              const norm = range > 0.04 ? (v - floors[i]) / range : 0; // 0..1
+              target = Math.pow(Math.max(0, norm), 1.5); // snap up the hits
+            }
+
+            // Fast attack, slow release = a bouncy, percussive feel.
+            const k = target > levels[i] ? 0.55 : 0.12;
+            levels[i] += (target - levels[i]) * k;
             const lvl = levels[i];
-            el.style.transform = `translateY(${-lvl * 22}px) scale(${
-              1 + lvl * 0.28
+
+            el.style.transform = `translateY(${-lvl * 28}px) scale(${
+              1 + lvl * 0.36
             })`;
-            el.style.opacity = (0.72 + lvl * 0.28).toFixed(3);
+            // flash from grey off-white (#c8c6c1) toward white on the beat
+            const c = Math.pow(lvl, 1.2); // sharpen so white reads only on hits
+            el.style.color = `rgb(${200 + 55 * c | 0}, ${198 + 57 * c | 0}, ${
+              193 + 62 * c | 0
+            })`;
           });
           rafId = requestAnimationFrame(frame);
         }
@@ -927,20 +1038,35 @@
           cancelAnimationFrame(rafId);
           letters.forEach((el, i) => {
             levels[i] = 0;
+            ceils[i] = 0;
+            floors[i] = 0;
             el.style.transform = "";
-            el.style.opacity = "";
+            el.style.color = "";
           });
         }
 
         async function start() {
-          if (!ctx) setupAudio();
+          if (!ctx) setupGraph();
           try {
             await ctx.resume();
-            await audio.play();
+            if (!buffer) await loadBuffer();
           } catch (err) {
-            console.debug("vibe playback blocked:", err);
+            console.debug("vibe audio failed to load:", AUDIO_SRC, err);
+            toggle.disabled = true;
+            toggle.title = "Add palette-demo.mp3 to enable";
             return;
           }
+          // A buffer source is single-use, so make a fresh one each play.
+          sourceNode = ctx.createBufferSource();
+          sourceNode.buffer = buffer;
+          sourceNode.loop = true;
+          sourceNode.connect(analyser);
+          sourceNode.start();
+          startedAt = ctx.currentTime; // begin the intro timeline
+          allCeil = 0;
+          allFloor = 0;
+          hiCeil = 0;
+          hiFloor = 0;
           playing = true;
           toggle.setAttribute("aria-pressed", "true");
           toggle.setAttribute("aria-label", "Mute the vibe");
@@ -951,7 +1077,15 @@
 
         function stop() {
           playing = false;
-          if (audio) audio.pause();
+          if (sourceNode) {
+            try {
+              sourceNode.stop();
+            } catch (e) {
+              /* already stopped */
+            }
+            sourceNode.disconnect();
+            sourceNode = null;
+          }
           toggle.setAttribute("aria-pressed", "false");
           toggle.setAttribute("aria-label", "Play the vibe");
           toggle.title = "Play the vibe";

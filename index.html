@@ -81,6 +81,8 @@
         font-size: clamp(3.5rem, 16vw, 9rem);
         font-weight: 200;
         letter-spacing: 1rem;
+        /* keep "Palette" on a single row at every window size */
+        white-space: nowrap;
         margin-bottom: 0.35rem;
         /* soften the big display word so it melds with the photo */
         color: rgba(240, 234, 224, 0.82);
@@ -94,43 +96,107 @@
         will-change: transform, opacity;
       }
 
-      /* play/pause control for the audio-reactive title */
+      /* mute/unmute control — sits at the end of "Palette" like a final glyph,
+         so it scales with the title (em units) and shares the letter color */
       .vibe-toggle {
         display: inline-flex;
         align-items: center;
-        gap: 0.55rem;
-        margin: 0.1rem 0 1.35rem;
-        padding: 0.4rem 0.95rem;
-        font-family: "Montserrat", sans-serif;
-        font-size: 0.68rem;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: #e8e1d5;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        border-radius: 999px;
+        justify-content: center;
+        vertical-align: middle;
+        margin: 0;
+        padding: 0;
+        line-height: 1;
+        color: rgba(240, 234, 224, 0.9);
+        background: transparent;
+        border: 0;
         cursor: pointer;
-        backdrop-filter: blur(4px);
-        transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        transition:
+          color 0.15s,
+          transform 0.15s;
+      }
+
+      /* idle (slashed / not playing): gentle pulse invites a click */
+      .vibe-toggle:not(.is-playing) .vibe-svg {
+        animation: vibe-hint 1.9s ease-in-out infinite;
       }
 
       .vibe-toggle:hover {
-        background: rgba(255, 255, 255, 0.12);
-        border-color: rgba(255, 255, 255, 0.4);
+        color: #fff;
+      }
+
+      .vibe-toggle:hover .vibe-svg {
+        animation: none;
+        transform: scale(1.08);
+      }
+
+      .vibe-toggle:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.7);
+        outline-offset: 3px;
       }
 
       .vibe-toggle.is-playing {
-        border-color: #c4714a;
+        color: #e6a07a;
       }
 
       .vibe-toggle:disabled {
-        opacity: 0.4;
+        opacity: 0.35;
         cursor: default;
       }
 
-      .vibe-icon {
-        font-size: 0.6rem;
-        line-height: 1;
+      .vibe-toggle:disabled .vibe-svg {
+        animation: none;
+      }
+
+      .vibe-svg {
+        width: 1.2rem;
+        height: 1.03rem;
+        display: block;
+        transform-origin: 50% 50%;
+        filter: drop-shadow(0 2px 10px rgba(20, 16, 12, 0.35));
+      }
+
+      /* the strike-through slash: shown when muted, retracts when playing */
+      .vibe-slash {
+        stroke-dasharray: 30;
+        stroke-dashoffset: 0;
+        transition: stroke-dashoffset 0.28s ease;
+      }
+
+      .vibe-toggle.is-playing .vibe-slash {
+        stroke-dashoffset: 30; /* slash "wipes" away */
+      }
+
+      /* sound waves: hidden while muted, fade in when playing */
+      .vibe-waves {
+        opacity: 0;
+        transition: opacity 0.25s ease 0.05s;
+      }
+
+      .vibe-toggle.is-playing .vibe-waves {
+        opacity: 1;
+      }
+
+      @keyframes vibe-hint {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.85;
+        }
+        50% {
+          transform: scale(1.12);
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .vibe-toggle:not(.is-playing) .vibe-svg {
+          animation: none;
+        }
+        .vibe-slash,
+        .vibe-waves {
+          transition: none;
+        }
       }
 
       .caption {
@@ -140,6 +206,18 @@
         text-transform: uppercase;
         opacity: 0.5;
         margin-bottom: 0.75rem;
+      }
+
+      /* "built for Ableton" + the mute toggle sit on one line together */
+      .caption-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        opacity: 1; /* keep the icon bright — dim only the words */
+      }
+
+      .caption-row > span {
+        opacity: 0.5;
       }
 
       .description {
@@ -225,7 +303,9 @@
         font-size: 1.05rem;
         font-weight: 600;
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
-        transition: transform 0.15s, opacity 0.15s;
+        transition:
+          transform 0.15s,
+          opacity 0.15s;
       }
 
       .download-btn:hover {
@@ -369,7 +449,9 @@
         border-radius: 5px;
         padding: 0.4rem 0.7rem;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
       }
 
       .copy-btn:hover {
@@ -504,6 +586,15 @@
       }
 
       /* ---- stack the hero once two columns no longer fit ---- */
+      /* two-column layout: shrink the display title so it fits its
+         ~520px column instead of overflowing into the right-hand feed */
+      @media (min-width: 881px) {
+        h1 {
+          font-size: clamp(3rem, 6.5vw, 6rem);
+          letter-spacing: 0.55rem;
+        }
+      }
+
       @media (max-width: 880px) {
         .hero {
           padding-top: 9vh;
@@ -538,6 +629,13 @@
       @media (max-width: 600px) {
         .content {
           padding: 1.5rem;
+        }
+
+        /* shrink title + spacing so "Palette" stays on one row on phones,
+           down to ~320px wide, without overflowing the viewport */
+        h1 {
+          font-size: clamp(1.7rem, 8.6vw, 3rem);
+          letter-spacing: 0.22rem;
         }
 
         .tagline {
@@ -598,19 +696,8 @@
         <div class="content">
           <!-- prettier-ignore -->
           <h1 id="palette-title" aria-label="Palette"><span class="ltr" aria-hidden="true">P</span><span class="ltr" aria-hidden="true">a</span><span class="ltr" aria-hidden="true">l</span><span class="ltr" aria-hidden="true">e</span><span class="ltr" aria-hidden="true">t</span><span class="ltr" aria-hidden="true">t</span><span class="ltr" aria-hidden="true">e</span></h1>
-          <p class="caption" style="margin-top: -0.75rem; font-style: italic">
-            built for Ableton
-          </p>
-
-          <button
-            type="button"
-            id="vibe-toggle"
-            class="vibe-toggle"
-            aria-pressed="false"
-          >
-            <span class="vibe-icon" aria-hidden="true">&#9654;</span>
-            <span class="vibe-label">play the vibe</span>
-          </button>
+          <!-- prettier-ignore -->
+          <p class="caption caption-row" style="margin-top: -0.75rem; font-style: italic"><span>built for Ableton</span><button type="button" id="vibe-toggle" class="vibe-toggle" aria-pressed="false" aria-label="Play the vibe" title="Play the vibe"><svg class="vibe-svg" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 H8 L13 4.5 V19.5 L8 15 H4 Z" fill="currentColor" fill-opacity="0.9" /><g class="vibe-waves"><path d="M16.5 9 Q19 12 16.5 15" /><path d="M19.5 6.5 Q23.5 12 19.5 17.5" /></g><line class="vibe-slash" x1="3.5" y1="4" x2="24.5" y2="20" /></svg></button></p>
 
           <p class="description">
             Find your sound faster with an audio-first AI co-producer embedded
@@ -630,59 +717,65 @@
         </div>
 
         <div class="hero-feed">
-        <p class="showcase-heading">Just ask &mdash;</p>
-        <div class="feed" aria-hidden="true">
-        <div class="feed-track" id="feed-track">
-          <template id="feed-items">
-            <div class="msg-user">
-              <div class="bubble">make this pad warmer and wider</div>
-            </div>
+          <p class="showcase-heading">Just ask &mdash;</p>
+          <div class="feed" aria-hidden="true">
+            <div class="feed-track" id="feed-track">
+              <template id="feed-items">
+                <div class="msg-user">
+                  <div class="bubble">make this pad warmer and wider</div>
+                </div>
 
-            <div class="msg-user">
-              <div class="bubble">why does my low end feel muddy?</div>
-            </div>
-            <div class="msg-ai">
-              <span class="ai-label">Palette</span>
-              <span class="ai-text"
-                >Your kick and bass are both peaking around 60&nbsp;Hz &mdash;
-                high-pass the bass and let the kick own the sub.</span
-              >
-            </div>
+                <div class="msg-user">
+                  <div class="bubble">why does my low end feel muddy?</div>
+                </div>
+                <div class="msg-ai">
+                  <span class="ai-label">Palette</span>
+                  <span class="ai-text"
+                    >Your kick and bass are both peaking around 60&nbsp;Hz
+                    &mdash; high-pass the bass and let the kick own the
+                    sub.</span
+                  >
+                </div>
 
-            <div class="msg-user">
-              <div class="bubble">sidechain the bass to the kick</div>
-            </div>
+                <div class="msg-user">
+                  <div class="bubble">sidechain the bass to the kick</div>
+                </div>
 
-            <div class="msg-user">
-              <div class="bubble">build a 4-bar drum fill into the drop</div>
-            </div>
+                <div class="msg-user">
+                  <div class="bubble">
+                    build a 4-bar drum fill into the drop
+                  </div>
+                </div>
 
-            <div class="msg-user">
-              <div class="bubble">add a dotted 1/8 delay on the vocal</div>
-            </div>
+                <div class="msg-user">
+                  <div class="bubble">add a dotted 1/8 delay on the vocal</div>
+                </div>
 
-            <div class="msg-user">
-              <div class="bubble">give me a darker progression in F minor</div>
-            </div>
+                <div class="msg-user">
+                  <div class="bubble">
+                    give me a darker progression in F minor
+                  </div>
+                </div>
 
-            <div class="msg-user">
-              <div class="bubble">what's clashing in my mix?</div>
-            </div>
-            <div class="msg-ai">
-              <span class="ai-label">Palette</span>
-              <span class="ai-text"
-                >The pad and the vocal are fighting around 2&ndash;3&nbsp;kHz.
-                I'd carve a little space there on the pad.</span
-              >
-            </div>
+                <div class="msg-user">
+                  <div class="bubble">what's clashing in my mix?</div>
+                </div>
+                <div class="msg-ai">
+                  <span class="ai-label">Palette</span>
+                  <span class="ai-text"
+                    >The pad and the vocal are fighting around
+                    2&ndash;3&nbsp;kHz. I'd carve a little space there on the
+                    pad.</span
+                  >
+                </div>
 
-            <div class="msg-user">
-              <div class="bubble">make the drop hit harder</div>
+                <div class="msg-user">
+                  <div class="bubble">make the drop hit harder</div>
+                </div>
+              </template>
             </div>
-          </template>
           </div>
         </div>
-      </div>
       </div>
     </section>
 
@@ -753,7 +846,9 @@
       // Copy the Terminal command to the clipboard.
       document.querySelectorAll(".copy-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
-          const code = btn.parentElement.querySelector("code").textContent.trim();
+          const code = btn.parentElement
+            .querySelector("code")
+            .textContent.trim();
           navigator.clipboard.writeText(code).then(() => {
             const prev = btn.textContent;
             btn.textContent = "Copied";
@@ -768,14 +863,12 @@
       // Each letter is driven by a live frequency band from the track.
       // Audio can't autoplay, so it only starts on the play button click.
       (function () {
-        const AUDIO_SRC = "palette-demo.mp3"; // drop your track at the repo root
+        const AUDIO_SRC = "palette-demo.m4a"; // drop your track at the repo root
         const title = document.getElementById("palette-title");
         const toggle = document.getElementById("vibe-toggle");
-        const icon = toggle.querySelector(".vibe-icon");
-        const label = toggle.querySelector(".vibe-label");
         const letters = Array.from(title.querySelectorAll(".ltr"));
         const reduceMotion = window.matchMedia(
-          "(prefers-reduced-motion: reduce)"
+          "(prefers-reduced-motion: reduce)",
         ).matches;
 
         let audio, ctx, analyser, sourceNode, freq, rafId;
@@ -802,7 +895,7 @@
             console.debug("vibe audio failed to load:", AUDIO_SRC);
             stop();
             toggle.disabled = true;
-            toggle.title = "Add palette-demo.mp3 to enable";
+            toggle.title = "Add palette-demo.m4a to enable";
           });
         }
 
@@ -850,9 +943,9 @@
           }
           playing = true;
           toggle.setAttribute("aria-pressed", "true");
-          toggle.classList.add("is-playing");
-          icon.innerHTML = "&#10074;&#10074;"; // pause glyph
-          label.textContent = "pause";
+          toggle.setAttribute("aria-label", "Mute the vibe");
+          toggle.title = "Mute the vibe";
+          toggle.classList.add("is-playing"); // slash wipes away, waves fade in
           if (!reduceMotion) frame();
         }
 
@@ -860,9 +953,9 @@
           playing = false;
           if (audio) audio.pause();
           toggle.setAttribute("aria-pressed", "false");
-          toggle.classList.remove("is-playing");
-          icon.innerHTML = "&#9654;"; // play glyph
-          label.textContent = "play the vibe";
+          toggle.setAttribute("aria-label", "Play the vibe");
+          toggle.title = "Play the vibe";
+          toggle.classList.remove("is-playing"); // slash returns, waves fade out
           reset();
         }
 

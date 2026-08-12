@@ -779,7 +779,7 @@
       </div>
     </section>
 
-    <section class="getting-started">
+    <!-- <section class="getting-started">
       <div class="gs-inner">
         <div class="gs-download">
           <a
@@ -810,7 +810,7 @@
             (Applications &rarr; Utilities &rarr; Terminal), paste this command,
             and press Return:
             <div class="code-block">
-              <!-- prettier-ignore -->
+              prettier-ignore
               <code>xattr -dr com.apple.quarantine /Applications/PaletteBar.app</code>
               <button type="button" class="copy-btn">Copy</button>
             </div>
@@ -831,7 +831,7 @@
           build.
         </blockquote>
       </div>
-    </section>
+    </section> -->
 
     <script>
       // Duplicate the list so the upward scroll loops seamlessly.
@@ -885,6 +885,8 @@
         const levels = letters.map(() => 0); // smoothed level per letter
         const ceils = letters.map(() => 0); // per-letter recent peak (auto-gain)
         const floors = letters.map(() => 0); // per-letter noise floor
+        const previousBands = letters.map(() => 0);
+        const fluxCeils = letters.map(() => 0);
 
         // Intro timeline: before the drop the letters light up in a scripted
         // sequence (driven by overall loudness, any frequency) to build with
@@ -923,6 +925,37 @@
           { until: 11.29, active: [5] }, // → 10.80
           { until: INTRO_END, active: [6] }, // final e → last clap 11.29, then drop
         ];
+        // Exact attacks before the riser. The later t pairs are slightly
+        // early to compensate for their softer attacks in the mix.
+        const introOnsets = [
+          0, 0.93, 1.89, 2.86, 4.06, 4.3, 4.43, 5.18, 5.32, 6.08, 6.25,
+        ];
+        // One clock owns both the riser attacks and their letters: two fast
+        // passes, then the clear kicks into the drop.
+        const riserCues = [
+          { at: 6.71, active: [6] },
+          { at: 7.18, active: [5] },
+          { at: 7.38, active: [4] },
+          { at: 7.58, active: [3] },
+          { at: 7.78, active: [2] },
+          { at: 7.98, active: [1] },
+          { at: 8.18, active: [0] },
+          { at: 8.38, active: [1] },
+          { at: 8.58, active: [2] },
+          { at: 8.78, active: [3] },
+          { at: 8.98, active: [4] },
+          { at: 9.18, active: [5] },
+          { at: 9.38, active: [6] },
+          { at: 9.58, active: [4] },
+          { at: 9.78, active: [2] },
+          { at: 9.98, active: [0] },
+          { at: 10.18, active: [2] },
+          { at: 10.38, active: [4] },
+          { at: 10.58, active: [6] },
+          { at: 10.8, active: [4, 5] },
+          { at: 11.05, active: [4, 5] },
+          { at: 11.29, active: [6] },
+        ];
         const activeAt = (t) => {
           for (const seg of introTimeline) if (t < seg.until) return seg;
           return null;
@@ -933,7 +966,9 @@
           ctx = new AudioCtx();
           analyser = ctx.createAnalyser();
           analyser.fftSize = 256; // 128 frequency bins — room for a log spread
-          analyser.smoothingTimeConstant = 0.72;
+          // A high analyser smoothing value visibly trails drum attacks. Let
+          // our own asymmetric easing provide the release instead.
+          analyser.smoothingTimeConstant = 0.38;
           analyser.connect(ctx.destination);
           freq = new Uint8Array(analyser.frequencyBinCount);
 
@@ -960,7 +995,11 @@
 
         function frame() {
           analyser.getByteFrequencyData(freq);
-          const t = ctx.currentTime - startedAt;
+          // currentTime is the render clock, slightly ahead of what has
+          // reached the speakers. Delay scripted changes by the device's
+          // reported output latency so sight and sound land together.
+          const outputLatency = ctx.outputLatency || ctx.baseLatency || 0;
+          const t = Math.max(0, ctx.currentTime - startedAt - outputLatency);
           const intro = t < INTRO_END;
 
           // During the intro, read two auto-gained drives: overall loudness
@@ -975,7 +1014,9 @@
             overall = sum / (freq.length - 2) / 255;
             allCeil = Math.max(overall, allCeil * 0.99);
             allFloor =
-              overall < allFloor ? overall : allFloor + (overall - allFloor) * 0.02;
+              overall < allFloor
+                ? overall
+                : allFloor + (overall - allFloor) * 0.02;
             const ra = allCeil - allFloor;
             overall = ra > 0.02 ? Math.pow((overall - allFloor) / ra, 1.3) : 0;
 
@@ -988,12 +1029,40 @@
             high = rh > 0.03 ? Math.pow((high - hiFloor) / rh, 1.6) : 0;
           }
 
+          // Short attack envelope from the most recent measured onset. It is
+          // deliberately independent of analyser smoothing; live loudness
+          // still shapes its height below.
+          let introPulse = 0;
+          let cueActive = null;
+          if (intro) {
+            let onset = 0;
+            if (t >= riserCues[0].at) {
+              for (const cue of riserCues) {
+                if (cue.at > t) break;
+                onset = cue.at;
+                cueActive = cue.active;
+              }
+            } else {
+              for (const candidate of introOnsets) {
+                if (candidate > t) break;
+                onset = candidate;
+              }
+            }
+            const age = t - onset;
+            introPulse = age < 0.34 ? Math.exp(-age * 9.5) : 0;
+          }
+
           letters.forEach((el, i) => {
             let target;
             if (intro) {
               // only the letters whose turn it is dance; the rest rest
               const drive = seg && seg.drive === "high" ? high : overall;
-              target = seg && seg.active.includes(i) ? drive : 0;
+              // The fixed pulse supplies timing; the live signal supplies
+              // dynamics. A small live tail keeps the motion organic.
+              const hit = Math.min(1, introPulse * (0.72 + drive * 0.42));
+              const active = cueActive || (seg && seg.active);
+              target =
+                active && active.includes(i) ? Math.max(hit, drive * 0.22) : 0;
             } else {
               // peak of a tiny window around this letter's band — punchier read
               const c = bands[i];
@@ -1002,6 +1071,15 @@
                 if (freq[b] > v) v = freq[b];
               }
               v /= 255; // 0..1
+
+              // Positive spectral flux is the part of the band that just
+              // arrived. Accent it so visible attacks land on transients,
+              // rather than at the crest of a slower energy envelope.
+              const flux = Math.max(0, v - previousBands[i]);
+              previousBands[i] = v;
+              fluxCeils[i] = Math.max(flux, fluxCeils[i] * 0.965);
+              const onset =
+                fluxCeils[i] > 0.012 ? Math.min(1, flux / fluxCeils[i]) : 0;
 
               // Per-letter auto-gain by dynamic range: each band tracks its own
               // slowly-decaying ceiling and slowly-rising floor, then maps its
@@ -1014,7 +1092,8 @@
                 v < floors[i] ? v : floors[i] + (v - floors[i]) * 0.02;
               const range = ceils[i] - floors[i];
               const norm = range > 0.04 ? (v - floors[i]) / range : 0; // 0..1
-              target = Math.pow(Math.max(0, norm), 1.5); // snap up the hits
+              const energy = Math.pow(Math.max(0, Math.min(1, norm)), 1.7);
+              target = Math.max(energy * 0.68, onset); // transient-led motion
             }
 
             // Fast attack, slow release = a bouncy, percussive feel.
@@ -1027,8 +1106,8 @@
             })`;
             // flash from grey off-white (#c8c6c1) toward white on the beat
             const c = Math.pow(lvl, 1.2); // sharpen so white reads only on hits
-            el.style.color = `rgb(${200 + 55 * c | 0}, ${198 + 57 * c | 0}, ${
-              193 + 62 * c | 0
+            el.style.color = `rgb(${(200 + 55 * c) | 0}, ${(198 + 57 * c) | 0}, ${
+              (193 + 62 * c) | 0
             })`;
           });
           rafId = requestAnimationFrame(frame);
@@ -1040,6 +1119,8 @@
             levels[i] = 0;
             ceils[i] = 0;
             floors[i] = 0;
+            previousBands[i] = 0;
+            fluxCeils[i] = 0;
             el.style.transform = "";
             el.style.color = "";
           });

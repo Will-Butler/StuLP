@@ -800,7 +800,7 @@
       </div>
     </section>
 
-    <!-- <section class="getting-started">
+    <section class="getting-started">
       <div class="gs-inner">
         <div class="gs-download">
           <a
@@ -826,19 +826,7 @@
             <strong>PaletteBar</strong> into your Applications folder.
           </li>
           <li>
-            Because Palette is in early alpha, macOS will say the app "can't be
-            opened" the first time. To allow it, open <strong>Terminal</strong>
-            (Applications &rarr; Utilities &rarr; Terminal), paste this command,
-            and press Return:
-            <div class="code-block">
-              prettier-ignore
-              <code>xattr -dr com.apple.quarantine /Applications/PaletteBar.app</code>
-              <button type="button" class="copy-btn">Copy</button>
-            </div>
-          </li>
-          <li>
             Open <strong>PaletteBar</strong> from your Applications folder.
-            You'll only need to do step 2 once.
           </li>
           <li>
             On first launch Palette asks for your Anthropic API key, then walks
@@ -846,13 +834,8 @@
             open to finish setup.
           </li>
         </ol>
-
-        <blockquote class="gs-note">
-          This one-time Terminal step goes away once Palette ships a notarized
-          build.
-        </blockquote>
       </div>
-    </section> -->
+    </section>
 
     <script>
       // Duplicate the list so the upward scroll loops seamlessly.
@@ -1224,13 +1207,13 @@
 
       // Track download-button clicks. The `download` attribute keeps the
       // page loaded, so the async insert has time to complete.
-      document.getElementById("download-btn").addEventListener("click", () => {
+      document.getElementById("download-btn")?.addEventListener("click", () => {
         logEvent("download_click", { platform: "mac" });
       });
 
       document
         .getElementById("waitlist-form")
-        .addEventListener("submit", async (e) => {
+        ?.addEventListener("submit", async (e) => {
           e.preventDefault();
           const email = document.getElementById("email-input").value.trim();
           const btn = document.getElementById("submit-btn");
